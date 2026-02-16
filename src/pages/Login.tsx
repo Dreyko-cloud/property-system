@@ -40,7 +40,6 @@ export default function Login() {
   }
 };
 
-
   return (
     <div className="min-h-screen bg-pearl dark:bg-primary flex items-center justify-center p-6 transition-colors">
       <div className="w-full max-w-md">
