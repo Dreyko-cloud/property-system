@@ -1,6 +1,35 @@
 import { Home, TrendingUp, Users, DollarSign } from 'lucide-react';
+import { useEffect } from 'react'
+import { supabase } from  '../lib/supabase'
 
 function Dashboard() {
+
+  useEffect(() => {
+  const checkUser = async () => {
+    const { data } = await supabase.auth.getUser()
+
+    if (!data.user) {
+      window.location.href = '/login'
+    }
+  }
+
+  checkUser()
+}, [])
+
+  useEffect(() => {
+  const loadUnits = async () => {
+    const { data, error } = await supabase
+      .from('units')
+      .select('*')
+
+    console.log('Units:', data)
+    console.log('Error:', error)
+  }
+
+  loadUnits()
+}, [])
+
+   
   const stats = [
     { label: 'Total Properties', value: '24', icon: Home, change: '+2', color: 'blue' },
     { label: 'Total Tenants', value: '89', icon: Users, change: '+5', color: 'green' },

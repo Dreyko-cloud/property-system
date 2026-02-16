@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -8,10 +9,29 @@ export default function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        full_name: name,
+      },
+    },
+  });
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  if (data.user) {
     navigate('/dashboard');
-  };
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-pearl dark:bg-primary flex items-center justify-center p-6 transition-colors">

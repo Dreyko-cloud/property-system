@@ -1,16 +1,46 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useEffect } from 'react';
 
 export default function Login() {
+
+  useEffect(() => {
+  const checkSession = async () => {
+    const { data } = await supabase.auth.getUser();
+
+    if (data.user) {
+      navigate('/dashboard');
+    }
+  };
+
+  checkSession();
+}, []);
+
+
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  if (data.user) {
     navigate('/dashboard');
-  };
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-pearl dark:bg-primary flex items-center justify-center p-6 transition-colors">
