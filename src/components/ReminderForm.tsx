@@ -1,38 +1,81 @@
 import { useState } from 'react';
 import { Send, Eye } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
-export function ReminderForm() {
+interface ReminderFormProps {
+  onSent?: () => void;
+}
+
+export function ReminderForm({ onSent }: ReminderFormProps) {
   const [formData, setFormData] = useState({
     recipients: 'all',
     reminderType: 'due-today',
     message: 'Dear Tenant,\n\nThis is a friendly reminder that your rent payment is due today. Please ensure payment is made by the end of the day to avoid any late fees.\n\nThank you for your prompt attention to this matter.',
     includePaymentLink: true,
   });
+  const [sending, setSending] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const recipientOptions = [
-    { value: 'all', label: 'All Tenants' },
-    { value: 'overdue', label: 'Overdue Tenants Only' },
+    { value: 'all',      label: 'All Tenants' },
+    { value: 'overdue',  label: 'Overdue Tenants Only' },
     { value: 'specific', label: 'Specific Tenants' },
   ];
 
   const reminderTypes = [
-    { value: 'upcoming', label: 'Upcoming Payment' },
+    { value: 'upcoming',  label: 'Upcoming Payment' },
     { value: 'due-today', label: 'Due Today' },
-    { value: 'overdue', label: 'Overdue Payment' },
+    { value: 'overdue',   label: 'Overdue Payment' },
   ];
 
-  const handleSubmit = (e: React.FormEvent, action: 'preview' | 'send') => {
-    e.preventDefault();
-    if (action === 'preview') {
-      alert('Preview functionality - Message preview would be displayed here');
-    } else {
-      alert('Send functionality - Reminder would be sent to selected recipients');
+  const recipientLabel = recipientOptions.find(r => r.value === formData.recipients)?.label ?? formData.recipients;
+  const typeLabel      = reminderTypes.find(t => t.value === formData.reminderType)?.label ?? formData.reminderType;
+
+  const handlePreview = () => {
+    setFeedback({
+      type: 'success',
+      text: `Preview — To: ${recipientLabel} | Type: ${typeLabel}`,
+    });
+  };
+
+  const handleSend = async () => {
+    setSending(true);
+    setFeedback(null);
+
+    const { error } = await supabase.from('reminders').insert([
+      {
+        date:       new Date().toISOString().split('T')[0],
+        recipients: recipientLabel,
+        type:       typeLabel,
+        status:     'Sent',
+        opened:     0,
+      },
+    ]);
+
+    setSending(false);
+
+    if (error) {
+      setFeedback({ type: 'error', text: error.message });
+      return;
     }
+
+    setFeedback({ type: 'success', text: 'Reminder sent successfully!' });
+    onSent?.();
   };
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
       <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Send Reminder</h2>
+
+      {feedback && (
+        <div className={`mb-4 p-3 rounded-lg text-sm ${
+          feedback.type === 'success'
+            ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
+            : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
+        }`}>
+          {feedback.text}
+        </div>
+      )}
 
       <form className="space-y-6">
         <div>
@@ -45,9 +88,7 @@ export function ReminderForm() {
             className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 focus:border-transparent transition-all"
           >
             {recipientOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
+              <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </select>
         </div>
@@ -62,9 +103,7 @@ export function ReminderForm() {
             className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 focus:border-transparent transition-all"
           >
             {reminderTypes.map((type) => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
+              <option key={type.value} value={type.value}>{type.label}</option>
             ))}
           </select>
         </div>
@@ -97,7 +136,7 @@ export function ReminderForm() {
         <div className="flex gap-3 pt-4">
           <button
             type="button"
-            onClick={(e) => handleSubmit(e, 'preview')}
+            onClick={handlePreview}
             className="flex items-center gap-2 px-6 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200"
           >
             <Eye size={18} />
@@ -105,11 +144,12 @@ export function ReminderForm() {
           </button>
           <button
             type="button"
-            onClick={(e) => handleSubmit(e, 'send')}
-            className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white rounded-lg transition-all duration-200"
+            onClick={handleSend}
+            disabled={sending}
+            className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send size={18} />
-            Send Reminder
+            {sending ? 'Sending...' : 'Send Reminder'}
           </button>
         </div>
       </form>

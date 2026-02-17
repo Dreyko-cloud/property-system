@@ -1,44 +1,44 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { useEffect } from 'react';
 
 export default function Login() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
+  // Redirect if already logged in
   useEffect(() => {
-  const checkSession = async () => {
-    const { data } = await supabase.auth.getUser();
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (data.user) {
+        navigate('/dashboard');
+      }
+    };
+    checkSession();
+  }, [navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    setLoading(false);
+
+    if (error) {
+      setError(error.message);
+      return;
+    }
 
     if (data.user) {
       navigate('/dashboard');
     }
   };
-
-  checkSession();
-}, []);
-
-  const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-  if (data.user) {
-    navigate('/dashboard');
-  }
-};
 
   return (
     <div className="min-h-screen bg-pearl dark:bg-primary flex items-center justify-center p-6 transition-colors">
@@ -57,12 +57,15 @@ export default function Login() {
             Sign in to your account
           </p>
 
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 text-sm rounded-lg">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-primary dark:text-white mb-2"
-              >
+              <label htmlFor="email" className="block text-sm font-medium text-primary dark:text-white mb-2">
                 Email Address
               </label>
               <input
@@ -77,10 +80,7 @@ export default function Login() {
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-primary dark:text-white mb-2"
-              >
+              <label htmlFor="password" className="block text-sm font-medium text-primary dark:text-white mb-2">
                 Password
               </label>
               <input
@@ -96,9 +96,10 @@ export default function Login() {
 
             <button
               type="submit"
-              className="w-full bg-primary dark:bg-gold text-white dark:text-primary font-semibold py-4 px-6 rounded-lg hover:bg-primary-light dark:hover:bg-gold-light transition-colors"
+              disabled={loading}
+              className="w-full bg-primary dark:bg-gold text-white dark:text-primary font-semibold py-4 px-6 rounded-lg hover:bg-primary-light dark:hover:bg-gold-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign In
+              {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
 

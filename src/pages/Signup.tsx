@@ -5,33 +5,54 @@ import { supabase } from '../lib/supabase';
 
 export default function Signup() {
   const navigate = useNavigate();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
+    setError(null);
 
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        full_name: name,
+    if (form.password !== form.confirm) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+
+    setLoading(true);
+
+    const { data, error } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+      options: {
+        data: { full_name: form.name },
       },
-    },
-  });
+    });
 
-  if (error) {
-    alert(error.message);
-    return;
-  }
+    setLoading(false);
 
-  if (data.user) {
-    navigate('/dashboard');
-  }
-};
+    if (error) {
+      setError(error.message);
+      return;
+    }
 
+    // If email confirmation is disabled in Supabase, user is logged in immediately
+    if (data.user && data.session) {
+      navigate('/dashboard');
+    } else {
+      // Email confirmation required
+      setSuccess(true);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-pearl dark:bg-primary flex items-center justify-center p-6 transition-colors">
@@ -47,83 +68,112 @@ export default function Signup() {
             Create Account
           </h1>
           <p className="text-center text-gray-600 dark:text-gray-400 mb-8">
-            Get started with property management
+            Get started with your property manager
           </p>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label
-                htmlFor="name"
-                className="block text-sm font-medium text-primary dark:text-white mb-2"
-              >
-                Full Name
-              </label>
-              <input
-                id="name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter your full name"
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-primary text-primary dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gold transition-colors"
-                required
-              />
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 text-sm rounded-lg">
+              {error}
             </div>
+          )}
 
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-primary dark:text-white mb-2"
-              >
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-primary text-primary dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gold transition-colors"
-                required
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-primary dark:text-white mb-2"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Create a password"
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-primary text-primary dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gold transition-colors"
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full bg-primary dark:bg-gold text-white dark:text-primary font-semibold py-4 px-6 rounded-lg hover:bg-primary-light dark:hover:bg-gold-light transition-colors"
-            >
-              Create Account
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-gray-600 dark:text-gray-400">
-              Already have an account?{' '}
+          {success ? (
+            <div className="text-center space-y-4">
+              <div className="p-4 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-lg">
+                Account created! Check your email to confirm your address, then sign in.
+              </div>
               <button
                 onClick={() => navigate('/login')}
-                className="text-gold dark:text-gold-light font-semibold hover:underline"
+                className="w-full bg-primary dark:bg-gold text-white dark:text-primary font-semibold py-3 px-6 rounded-lg hover:bg-primary-light transition-colors"
               >
-                Sign in
+                Go to Login
               </button>
-            </p>
-          </div>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-primary dark:text-white mb-2">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={form.name}
+                  onChange={handleChange}
+                  placeholder="John Manager"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-primary text-primary dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gold transition-colors"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-primary dark:text-white mb-2">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  placeholder="john@example.com"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-primary text-primary dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gold transition-colors"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-primary dark:text-white mb-2">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="Min. 6 characters"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-primary text-primary dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gold transition-colors"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-primary dark:text-white mb-2">
+                  Confirm Password
+                </label>
+                <input
+                  type="password"
+                  name="confirm"
+                  value={form.confirm}
+                  onChange={handleChange}
+                  placeholder="Repeat your password"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-primary text-primary dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gold transition-colors"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-primary dark:bg-gold text-white dark:text-primary font-semibold py-4 px-6 rounded-lg hover:bg-primary-light dark:hover:bg-gold-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Creating account...' : 'Create Account'}
+              </button>
+            </form>
+          )}
+
+          {!success && (
+            <div className="mt-6 text-center">
+              <p className="text-gray-600 dark:text-gray-400">
+                Already have an account?{' '}
+                <button
+                  onClick={() => navigate('/login')}
+                  className="text-gold dark:text-gold-light font-semibold hover:underline"
+                >
+                  Sign in
+                </button>
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

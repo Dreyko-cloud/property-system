@@ -1,33 +1,76 @@
 import { DollarSign, TrendingUp, AlertTriangle, Clock, Bell, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
+import { supabase } from '../lib/supabase';
+import { useEffect } from 'react';
 
 interface Payment {
-  id: number;
+  id: string;
   tenant: string;
   unit: string;
   amount: number;
   billingMonth: string;
   paymentDate: string | null;
-  status: 'Paid' | 'Pending' | 'Overdue';
+  status: string;
+  created_at: string;
 }
 
-const mockPayments: Payment[] = [
-  { id: 1, tenant: 'John Smith', unit: '101', amount: 1200, billingMonth: 'March 2024', paymentDate: '2024-03-01', status: 'Paid' },
-  { id: 2, tenant: 'Sarah Johnson', unit: '201', amount: 1800, billingMonth: 'March 2024', paymentDate: '2024-03-05', status: 'Paid' },
-  { id: 3, tenant: 'Mike Davis', unit: '301', amount: 1500, billingMonth: 'March 2024', paymentDate: null, status: 'Pending' },
-  { id: 4, tenant: 'Emily Wilson', unit: '102', amount: 950, billingMonth: 'March 2024', paymentDate: null, status: 'Pending' },
-  { id: 5, tenant: 'David Brown', unit: '202', amount: 1200, billingMonth: 'February 2024', paymentDate: null, status: 'Overdue' },
-  { id: 6, tenant: 'John Smith', unit: '101', amount: 1200, billingMonth: 'February 2024', paymentDate: '2024-02-01', status: 'Paid' },
-];
-
 export default function Payments() {
-  const [payments] = useState<Payment[]>(mockPayments);
-
-  const currentMonth = payments.filter(p => p.billingMonth === 'March 2024');
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const currentMonth = payments;
   const totalCollected = currentMonth.filter(p => p.status === 'Paid').reduce((sum, p) => sum + p.amount, 0);
   const pendingPayments = currentMonth.filter(p => p.status === 'Pending').length;
   const overduePayments = payments.filter(p => p.status === 'Overdue').length;
-  const collectionRate = Math.round((currentMonth.filter(p => p.status === 'Paid').length / currentMonth.length) * 100);
+  const collectionRate =
+  currentMonth.length === 0
+    ? 0
+    : Math.round(
+        (currentMonth.filter(p => p.status === 'Paid').length /
+          currentMonth.length) *
+          100
+      );
+
+  useEffect(() => {
+  const loadPayments = async () => {
+    const { data, error } = await supabase
+      .from('payments')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    setPayments(data || []);
+  };
+
+  loadPayments();
+}, []);
+
+  const recordPayment = async (id: string) => {
+  const { error } = await supabase
+    .from('payments')
+    .update({
+      status: 'Paid',
+      paymentDate: new Date().toISOString(),
+    })
+    .eq('id', id);
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  // Update UI instantly
+  setPayments(prev =>
+    prev.map(p =>
+      p.id === id
+        ? { ...p, status: 'Paid', paymentDate: new Date().toISOString() }
+        : p
+    )
+  );
+};
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -50,7 +93,7 @@ export default function Payments() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Collected This Month</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">${totalCollected.toLocaleString()}</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">KES{totalCollected.toLocaleString()}</p>
             </div>
             <div className="p-3 bg-green-100 dark:bg-green-900 rounded-lg">
               <DollarSign className="w-6 h-6 text-green-600 dark:text-green-400" />
@@ -144,9 +187,9 @@ export default function Payments() {
                             Remind
                           </button>
                           <button
-                            className="flex items-center gap-1 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 text-sm font-medium transition-colors"
-                            title="Record Payment"
-                          >
+  onClick={() => recordPayment(payment.id)}
+  className="flex items-center gap-1 text-green-600 ..."
+>
                             <CheckCircle className="w-4 h-4" />
                             Record
                           </button>

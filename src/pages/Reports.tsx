@@ -1,57 +1,114 @@
 import { DollarSign, TrendingUp, AlertCircle, FileDown } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
 import { ChartCard, SimpleBarChart, SimpleLineChart, DonutChart } from '../components/ChartCard';
 
+interface MonthlyData {
+  label: string;
+  value: number;
+}
+
 function Reports() {
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [expectedRevenue, setExpectedRevenue] = useState(0);
+  const [collectionRate, setCollectionRate] = useState(0);
+  const [outstandingBalance, setOutstandingBalance] = useState(0);
+  const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
+  const [occupancyData, setOccupancyData] = useState([
+    { label: 'Occupied', value: 0, color: '#10b981' },
+    { label: 'Vacant', value: 0, color: '#ef4444' },
+    { label: 'Maintenance', value: 0, color: '#f59e0b' },
+  ]);
+
+  useEffect(() => {
+    const loadReports = async () => {
+      // Payments data
+      const { data: payments } = await supabase.from('payments').select('*');
+      const allPayments = payments || [];
+
+      const paid = allPayments.filter(p => p.status === 'Paid');
+      const pending = allPayments.filter(p => p.status === 'Pending');
+
+      const revenue = paid.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const outstanding = pending.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const expected = revenue + outstanding;
+
+      setTotalRevenue(revenue);
+      setOutstandingBalance(outstanding);
+      setExpectedRevenue(expected);
+      setCollectionRate(expected > 0 ? Math.round((revenue / expected) * 100 * 10) / 10 : 0);
+
+      // Monthly breakdown (last 6 months)
+      const months: MonthlyData[] = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        const label = d.toLocaleString('default', { month: 'short' });
+        const year = d.getFullYear();
+        const month = d.getMonth() + 1;
+        const monthStr = `${year}-${String(month).padStart(2, '0')}`;
+
+        const total = paid
+          .filter(p => p.payment_date?.startsWith(monthStr))
+          .reduce((sum, p) => sum + (p.amount || 0), 0);
+
+        months.push({ label, value: total });
+      }
+      setMonthlyData(months);
+
+      // Units for occupancy
+      const { data: units } = await supabase.from('units').select('status');
+      const allUnits = units || [];
+      const occupied = allUnits.filter(u => u.status === 'Occupied').length;
+      const vacant = allUnits.filter(u => u.status === 'Vacant').length;
+      const maintenance = allUnits.filter(u => u.status === 'Maintenance').length;
+
+      setOccupancyData([
+        { label: 'Occupied', value: occupied, color: '#10b981' },
+        { label: 'Vacant', value: vacant, color: '#ef4444' },
+        { label: 'Maintenance', value: maintenance, color: '#f59e0b' },
+      ]);
+    };
+
+    loadReports();
+  }, []);
+
   const summaryCards = [
     {
       label: 'Total Revenue',
-      value: '$128,450',
-      change: '+12.5%',
+      value: `KES ${totalRevenue.toLocaleString()}`,
       icon: DollarSign,
       color: 'bg-green-500 dark:bg-green-600',
     },
     {
       label: 'Expected Revenue',
-      value: '$135,000',
-      change: '+8.2%',
+      value: `KES ${expectedRevenue.toLocaleString()}`,
       icon: TrendingUp,
       color: 'bg-blue-500 dark:bg-blue-600',
     },
     {
       label: 'Collection Rate',
-      value: '95.1%',
-      change: '+2.3%',
+      value: `${collectionRate}%`,
       icon: TrendingUp,
       color: 'bg-purple-500 dark:bg-purple-600',
     },
     {
       label: 'Outstanding Balance',
-      value: '$6,550',
-      change: '-15.4%',
+      value: `KES ${outstandingBalance.toLocaleString()}`,
       icon: AlertCircle,
       color: 'bg-orange-500 dark:bg-orange-600',
     },
   ];
 
-  const monthlyRevenueData = [
-    { label: 'Jan', value: 98000 },
-    { label: 'Feb', value: 105000 },
-    { label: 'Mar', value: 112000 },
-    { label: 'Apr', value: 108000 },
-    { label: 'May', value: 118000 },
-    { label: 'Jun', value: 128450 },
-  ];
-
   const comparisonData = [
-    { label: 'Expected', value: 135000, color: 'bg-blue-500 dark:bg-blue-600' },
-    { label: 'Collected', value: 128450, color: 'bg-green-500 dark:bg-green-600' },
+    { label: 'Expected', value: expectedRevenue, color: 'bg-blue-500 dark:bg-blue-600' },
+    { label: 'Collected', value: totalRevenue, color: 'bg-green-500 dark:bg-green-600' },
   ];
 
-  const occupancyData = [
-    { label: 'Occupied', value: 85, color: '#10b981' },
-    { label: 'Vacant', value: 9, color: '#ef4444' },
-    { label: 'Maintenance', value: 6, color: '#f59e0b' },
-  ];
+  const totalUnitsCount = occupancyData.reduce((sum, d) => sum + d.value, 0);
+  const occupancyRate = totalUnitsCount > 0
+    ? Math.round((occupancyData[0].value / totalUnitsCount) * 100)
+    : 0;
 
   return (
     <div>
@@ -81,15 +138,6 @@ function Reports() {
                 <div className={`${card.color} p-3 rounded-lg`}>
                   <Icon className="text-white" size={24} />
                 </div>
-                <span
-                  className={`text-sm font-medium ${
-                    card.change.startsWith('+')
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-red-600 dark:text-red-400'
-                  }`}
-                >
-                  {card.change}
-                </span>
               </div>
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{card.value}</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">{card.label}</p>
@@ -100,18 +148,19 @@ function Reports() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <ChartCard title="Monthly Revenue Trend">
-          <SimpleLineChart data={monthlyRevenueData} height={250} />
+          <SimpleLineChart data={monthlyData} height={250} />
         </ChartCard>
 
-        <ChartCard title="Expected vs Collected">
+        <ChartCard title="Expected vs Collected (KES)">
           <SimpleBarChart data={comparisonData} height={250} />
         </ChartCard>
       </div>
 
       <ChartCard title="Occupancy Rate" className="mb-6">
-        <DonutChart data={occupancyData} centerText="94%" />
+        <DonutChart data={occupancyData} centerText={`${occupancyRate}%`} />
       </ChartCard>
     </div>
   );
 }
+
 export default Reports;
