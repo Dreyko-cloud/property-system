@@ -1,4 +1,7 @@
 import { DollarSign, TrendingUp, AlertCircle, FileDown } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { ChartCard, SimpleBarChart, SimpleLineChart, DonutChart } from '../components/ChartCard';
@@ -83,6 +86,52 @@ function Reports() {
 
   const totalUnitsCount = occupancyData.reduce((sum, d) => sum + d.value, 0);
   const occupancyRate = totalUnitsCount > 0 ? Math.round((occupancyData[0].value / totalUnitsCount) * 100) : 0;
+
+  // ─── Export functions ─────────────────────────────────────────────────────────
+  const getExportRows = () => {
+    const monthLabel = `${MONTHS[selectedMonth]} ${selectedYear}`;
+    return [
+      ['Report Period', monthLabel],
+      ['Total Collected', `KSh ${totalRevenue.toLocaleString()}`],
+      ['Expected Revenue', `KSh ${expectedRevenue.toLocaleString()}`],
+      ['Outstanding Balance', `KSh ${outstandingBalance.toLocaleString()}`],
+      ['Collection Rate', `${collectionRate}%`],
+      [],
+      ['Month', 'Revenue (KSh)'],
+      ...monthlyData.map(m => [m.label, m.value]),
+    ];
+  };
+
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text(`Payment Report — ${MONTHS[selectedMonth]} ${selectedYear}`, 14, 20);
+    autoTable(doc, {
+      startY: 30,
+      head: [['Metric', 'Value']],
+      body: [
+        ['Total Collected', `KSh ${totalRevenue.toLocaleString()}`],
+        ['Expected Revenue', `KSh ${expectedRevenue.toLocaleString()}`],
+        ['Outstanding Balance', `KSh ${outstandingBalance.toLocaleString()}`],
+        ['Collection Rate', `${collectionRate}%`],
+      ],
+    });
+    autoTable(doc, {
+      startY: (doc as any).lastAutoTable.finalY + 10,
+      head: [['Month', 'Revenue (KSh)']],
+      body: monthlyData.map(m => [m.label, m.value.toLocaleString()]),
+    });
+    doc.save(`report-${MONTHS[selectedMonth]}-${selectedYear}.pdf`);
+  };
+
+  const exportExcel = () => {
+    const rows = getExportRows();
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Report');
+    XLSX.writeFile(wb, `report-${MONTHS[selectedMonth]}-${selectedYear}.xlsx`);
+  };
+
   const years = [currentYear - 1, currentYear, currentYear + 1];
 
   return (
@@ -99,10 +148,10 @@ function Reports() {
             className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500">
             {years.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm">
+          <button onClick={exportPDF} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm">
             <FileDown size={16} /> PDF
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm">
+          <button onClick={exportExcel} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm">
             <FileDown size={16} /> Excel
           </button>
         </div>

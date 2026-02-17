@@ -77,7 +77,15 @@ export default function Units() {
 
   const handleDelete = async (unit: Unit) => {
     if (unit.status === 'Occupied') {
-      alert('Cannot delete an occupied unit. Remove the tenant first.');
+      const yes = confirm(
+        `Unit ${unit.unit_number} is occupied by ${unit.tenant_name || 'a tenant'}.\n\nDelete the unit AND remove the tenant?`
+      );
+      if (!yes) return;
+      setDeletingId(unit.id);
+      await supabase.from('tenants').delete().eq('unit', unit.unit_number);
+      await supabase.from('units').delete().eq('id', unit.id);
+      setDeletingId(null);
+      await loadUnits();
       return;
     }
     if (!confirm(`Delete Unit ${unit.unit_number}?`)) return;
