@@ -73,10 +73,10 @@ function Reports() {
   }, [selectedMonth, selectedYear]);
 
   const summaryCards = [
-    { label: 'Total Collected',     value: `KSh ${totalRevenue.toLocaleString()}`,      icon: DollarSign,  color: 'bg-green-500' },
-    { label: 'Expected Revenue',    value: `KSh ${expectedRevenue.toLocaleString()}`,   icon: TrendingUp,  color: 'bg-blue-500' },
+    { label: 'Total Collected',     value: `KES ${totalRevenue.toLocaleString()}`,      icon: DollarSign,  color: 'bg-green-500' },
+    { label: 'Expected Revenue',    value: `KES ${expectedRevenue.toLocaleString()}`,   icon: TrendingUp,  color: 'bg-blue-500' },
     { label: 'Collection Rate',     value: `${collectionRate}%`,                         icon: TrendingUp,  color: 'bg-purple-500' },
-    { label: 'Outstanding Balance', value: `KSh ${outstandingBalance.toLocaleString()}`,icon: AlertCircle, color: 'bg-orange-500' },
+    { label: 'Outstanding Balance', value: `KES ${outstandingBalance.toLocaleString()}`,icon: AlertCircle, color: 'bg-orange-500' },
   ];
 
   const comparisonData = [
@@ -92,12 +92,12 @@ function Reports() {
     const monthLabel = `${MONTHS[selectedMonth]} ${selectedYear}`;
     return [
       ['Report Period', monthLabel],
-      ['Total Collected', `KSh ${totalRevenue.toLocaleString()}`],
-      ['Expected Revenue', `KSh ${expectedRevenue.toLocaleString()}`],
-      ['Outstanding Balance', `KSh ${outstandingBalance.toLocaleString()}`],
+      ['Total Collected', `KES ${totalRevenue.toLocaleString()}`],
+      ['Expected Revenue', `KES ${expectedRevenue.toLocaleString()}`],
+      ['Outstanding Balance', `KES ${outstandingBalance.toLocaleString()}`],
       ['Collection Rate', `${collectionRate}%`],
       [],
-      ['Month', 'Revenue (KSh)'],
+      ['Month', 'Revenue (KES)'],
       ...monthlyData.map(m => [m.label, m.value]),
     ];
   };
@@ -110,15 +110,15 @@ function Reports() {
       startY: 30,
       head: [['Metric', 'Value']],
       body: [
-        ['Total Collected', `KSh ${totalRevenue.toLocaleString()}`],
-        ['Expected Revenue', `KSh ${expectedRevenue.toLocaleString()}`],
-        ['Outstanding Balance', `KSh ${outstandingBalance.toLocaleString()}`],
+        ['Total Collected', `KES ${totalRevenue.toLocaleString()}`],
+        ['Expected Revenue', `KES ${expectedRevenue.toLocaleString()}`],
+        ['Outstanding Balance', `KES ${outstandingBalance.toLocaleString()}`],
         ['Collection Rate', `${collectionRate}%`],
       ],
     });
     autoTable(doc, {
       startY: (doc as any).lastAutoTable.finalY + 10,
-      head: [['Month', 'Revenue (KSh)']],
+      head: [['Month', 'Revenue (KES)']],
       body: monthlyData.map(m => [m.label, m.value.toLocaleString()]),
     });
     doc.save(`report-${MONTHS[selectedMonth]}-${selectedYear}.pdf`);

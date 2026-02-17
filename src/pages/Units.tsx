@@ -122,7 +122,7 @@ export default function Units() {
           { label: 'Total Units', value: totalUnits, icon: Building2, color: 'blue' },
           { label: 'Occupied', value: occupiedUnits, icon: Key, color: 'green' },
           { label: 'Vacant', value: vacantUnits, icon: Home, color: 'blue' },
-          { label: 'Monthly Revenue', value: `KSh ${monthlyRevenue.toLocaleString()}`, icon: DollarSign, color: 'green' },
+          { label: 'Monthly Revenue', value: `KES ${monthlyRevenue.toLocaleString()}`, icon: DollarSign, color: 'green' },
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
@@ -147,7 +147,7 @@ export default function Units() {
                 { label: 'Unit Number', name: 'unit_number', type: 'text', placeholder: '101' },
                 { label: 'Bedrooms', name: 'bedrooms', type: 'number', placeholder: '2' },
                 { label: 'Bathrooms', name: 'bathrooms', type: 'number', placeholder: '1' },
-                { label: 'Monthly Rent (KSh)', name: 'monthly_rent', type: 'number', placeholder: '25000' },
+                { label: 'Monthly Rent (KES)', name: 'monthly_rent', type: 'number', placeholder: '25000' },
               ].map(({ label, name, type, placeholder }) => (
                 <div key={name}>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -227,7 +227,7 @@ export default function Units() {
                 </div>
                 <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
                   <p className="text-xl font-bold text-gray-900 dark:text-white">
-                    KSh {(unit.monthly_rent || 0).toLocaleString()}/mo
+                  KES {(unit.monthly_rent || 0).toLocaleString()}/mo
                   </p>
                 </div>
               </div>

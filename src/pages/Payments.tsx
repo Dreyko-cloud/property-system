@@ -13,6 +13,7 @@ interface Payment {
   created_at: string;
 }
 
+
 interface Tenant {
   id: string;
   name: string;
@@ -125,7 +126,7 @@ export default function Payments() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">{label}</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-2">KSh {value.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-2">KES {value.toLocaleString()}</p>
               </div>
               <div className={`p-3 bg-${color}-100 dark:bg-${color}-900 rounded-lg`}>
                 <Icon className={`w-6 h-6 text-${color}-600 dark:text-${color}-400`} />
@@ -155,7 +156,7 @@ export default function Payments() {
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Amount (KSh) <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Amount (KES) <span className="text-red-500">*</span></label>
               <input type="number" name="amount" value={form.amount} onChange={handleChange} min="0" placeholder="25000"
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
             </div>
@@ -210,7 +211,7 @@ export default function Payments() {
                 <tr key={payment.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                   <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">{payment.tenant_name}</td>
                   <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{payment.unit}</td>
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">KSh {(payment.amount || 0).toLocaleString()}</td>
+                  <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">KES {(payment.amount || 0).toLocaleString()}</td>
                   <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                     {payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('en-KE') : '—'}
                   </td>

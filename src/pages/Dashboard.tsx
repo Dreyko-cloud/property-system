@@ -52,7 +52,7 @@ function Dashboard() {
   const stats = [
     { label: 'Total Units', value: totalUnits.toString(), icon: Home, color: 'blue' },
     { label: 'Total Tenants', value: totalTenants.toString(), icon: Users, color: 'green' },
-    { label: 'Monthly Revenue', value: `KSh ${monthlyRevenue.toLocaleString()}`, icon: DollarSign, color: 'purple' },
+    { label: 'Monthly Revenue', value: `KES ${monthlyRevenue.toLocaleString()}`, icon: DollarSign, color: 'purple' },
     { label: 'Occupancy Rate', value: `${occupancyRate}%`, icon: TrendingUp, color: 'orange' },
   ];
 
@@ -106,7 +106,7 @@ function Dashboard() {
                 <tr key={payment.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                   <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">{payment.tenant_name}</td>
                   <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{payment.unit}</td>
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">KSh {(payment.amount || 0).toLocaleString()}</td>
+                  <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">KES {(payment.amount || 0).toLocaleString()}</td>
                   <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                     {payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('en-KE') : '—'}
                   </td>
