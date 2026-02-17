@@ -3,12 +3,15 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { ChartCard, SimpleBarChart, SimpleLineChart, DonutChart } from '../components/ChartCard';
 
-interface MonthlyData {
-  label: string;
-  value: number;
-}
+interface MonthlyData { label: string; value: number; }
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const currentYear = new Date().getFullYear();
+const currentMonth = new Date().getMonth(); // 0-indexed
 
 function Reports() {
+  const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth);
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [expectedRevenue, setExpectedRevenue] = useState(0);
   const [collectionRate, setCollectionRate] = useState(0);
@@ -22,12 +25,15 @@ function Reports() {
 
   useEffect(() => {
     const loadReports = async () => {
-      // Payments data
       const { data: payments } = await supabase.from('payments').select('*');
       const allPayments = payments || [];
 
-      const paid = allPayments.filter(p => p.status === 'Paid');
-      const pending = allPayments.filter(p => p.status === 'Pending');
+      // Filter by selected month/year
+      const monthStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
+      const filtered = allPayments.filter(p => p.payment_date?.startsWith(monthStr));
+
+      const paid = filtered.filter(p => p.status === 'Paid');
+      const pending = filtered.filter(p => p.status === 'Pending' || p.status === 'Overdue');
 
       const revenue = paid.reduce((sum, p) => sum + (p.amount || 0), 0);
       const outstanding = pending.reduce((sum, p) => sum + (p.amount || 0), 0);
@@ -36,108 +42,83 @@ function Reports() {
       setTotalRevenue(revenue);
       setOutstandingBalance(outstanding);
       setExpectedRevenue(expected);
-      setCollectionRate(expected > 0 ? Math.round((revenue / expected) * 100 * 10) / 10 : 0);
+      setCollectionRate(expected > 0 ? Math.round((revenue / expected) * 1000) / 10 : 0);
 
-      // Monthly breakdown (last 6 months)
+      // Last 6 months trend
       const months: MonthlyData[] = [];
       for (let i = 5; i >= 0; i--) {
-        const d = new Date();
-        d.setMonth(d.getMonth() - i);
-        const label = d.toLocaleString('default', { month: 'short' });
-        const year = d.getFullYear();
-        const month = d.getMonth() + 1;
-        const monthStr = `${year}-${String(month).padStart(2, '0')}`;
-
-        const total = paid
-          .filter(p => p.payment_date?.startsWith(monthStr))
+        const d = new Date(selectedYear, selectedMonth - i, 1);
+        const label = MONTHS[d.getMonth()];
+        const mStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const total = allPayments
+          .filter(p => p.status === 'Paid' && p.payment_date?.startsWith(mStr))
           .reduce((sum, p) => sum + (p.amount || 0), 0);
-
         months.push({ label, value: total });
       }
       setMonthlyData(months);
 
-      // Units for occupancy
+      // Units occupancy
       const { data: units } = await supabase.from('units').select('status');
       const allUnits = units || [];
-      const occupied = allUnits.filter(u => u.status === 'Occupied').length;
-      const vacant = allUnits.filter(u => u.status === 'Vacant').length;
-      const maintenance = allUnits.filter(u => u.status === 'Maintenance').length;
-
       setOccupancyData([
-        { label: 'Occupied', value: occupied, color: '#10b981' },
-        { label: 'Vacant', value: vacant, color: '#ef4444' },
-        { label: 'Maintenance', value: maintenance, color: '#f59e0b' },
+        { label: 'Occupied',    value: allUnits.filter(u => u.status === 'Occupied').length,    color: '#10b981' },
+        { label: 'Vacant',      value: allUnits.filter(u => u.status === 'Vacant').length,      color: '#ef4444' },
+        { label: 'Maintenance', value: allUnits.filter(u => u.status === 'Maintenance').length, color: '#f59e0b' },
       ]);
     };
-
     loadReports();
-  }, []);
+  }, [selectedMonth, selectedYear]);
 
   const summaryCards = [
-    {
-      label: 'Total Revenue',
-      value: `KES ${totalRevenue.toLocaleString()}`,
-      icon: DollarSign,
-      color: 'bg-green-500 dark:bg-green-600',
-    },
-    {
-      label: 'Expected Revenue',
-      value: `KES ${expectedRevenue.toLocaleString()}`,
-      icon: TrendingUp,
-      color: 'bg-blue-500 dark:bg-blue-600',
-    },
-    {
-      label: 'Collection Rate',
-      value: `${collectionRate}%`,
-      icon: TrendingUp,
-      color: 'bg-purple-500 dark:bg-purple-600',
-    },
-    {
-      label: 'Outstanding Balance',
-      value: `KES ${outstandingBalance.toLocaleString()}`,
-      icon: AlertCircle,
-      color: 'bg-orange-500 dark:bg-orange-600',
-    },
+    { label: 'Total Collected',     value: `KSh ${totalRevenue.toLocaleString()}`,      icon: DollarSign,  color: 'bg-green-500' },
+    { label: 'Expected Revenue',    value: `KSh ${expectedRevenue.toLocaleString()}`,   icon: TrendingUp,  color: 'bg-blue-500' },
+    { label: 'Collection Rate',     value: `${collectionRate}%`,                         icon: TrendingUp,  color: 'bg-purple-500' },
+    { label: 'Outstanding Balance', value: `KSh ${outstandingBalance.toLocaleString()}`,icon: AlertCircle, color: 'bg-orange-500' },
   ];
 
   const comparisonData = [
-    { label: 'Expected', value: expectedRevenue, color: 'bg-blue-500 dark:bg-blue-600' },
-    { label: 'Collected', value: totalRevenue, color: 'bg-green-500 dark:bg-green-600' },
+    { label: 'Expected',  value: expectedRevenue, color: 'bg-blue-500' },
+    { label: 'Collected', value: totalRevenue,     color: 'bg-green-500' },
   ];
 
   const totalUnitsCount = occupancyData.reduce((sum, d) => sum + d.value, 0);
-  const occupancyRate = totalUnitsCount > 0
-    ? Math.round((occupancyData[0].value / totalUnitsCount) * 100)
-    : 0;
+  const occupancyRate = totalUnitsCount > 0 ? Math.round((occupancyData[0].value / totalUnitsCount) * 100) : 0;
+  const years = [currentYear - 1, currentYear, currentYear + 1];
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Reports</h1>
-        <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200">
-            <FileDown size={18} />
-            Export PDF
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Month + Year filter */}
+          <select value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500">
+            {MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}
+          </select>
+          <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500">
+            {years.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm">
+            <FileDown size={16} /> PDF
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white rounded-lg transition-all duration-200">
-            <FileDown size={18} />
-            Export Excel
+          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm">
+            <FileDown size={16} /> Excel
           </button>
         </div>
       </div>
+
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+        Showing data for <span className="font-semibold text-gray-700 dark:text-gray-300">{MONTHS[selectedMonth]} {selectedYear}</span>
+      </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {summaryCards.map((card) => {
           const Icon = card.icon;
           return (
-            <div
-              key={card.label}
-              className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all duration-200"
-            >
+            <div key={card.label} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between mb-4">
-                <div className={`${card.color} p-3 rounded-lg`}>
-                  <Icon className="text-white" size={24} />
-                </div>
+                <div className={`${card.color} p-3 rounded-lg`}><Icon className="text-white" size={24} /></div>
               </div>
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{card.value}</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">{card.label}</p>
@@ -147,11 +128,10 @@ function Reports() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <ChartCard title="Monthly Revenue Trend">
+        <ChartCard title="6-Month Revenue Trend">
           <SimpleLineChart data={monthlyData} height={250} />
         </ChartCard>
-
-        <ChartCard title="Expected vs Collected (KES)">
+        <ChartCard title={`Expected vs Collected — ${MONTHS[selectedMonth]}`}>
           <SimpleBarChart data={comparisonData} height={250} />
         </ChartCard>
       </div>

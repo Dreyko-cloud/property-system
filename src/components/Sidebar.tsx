@@ -1,37 +1,42 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  Building2,
-  Users,
-  CreditCard,
-  FileText,
-  Bell,
-  Settings,
+  LayoutDashboard, Building2, Users, CreditCard,
+  FileText, Bell, Settings, LogOut,
 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 const menuItems = [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { path: '/units', icon: Building2, label: 'Units' },
-  { path: '/tenants', icon: Users, label: 'Tenants' },
-  { path: '/payments', icon: CreditCard, label: 'Payments' },
-  { path: '/reports', icon: FileText, label: 'Reports' },
-  { path: '/reminders', icon: Bell, label: 'Reminders' },
-  { path: '/settings', icon: Settings, label: 'Settings' },
+  { path: '/units',     icon: Building2,       label: 'Units' },
+  { path: '/tenants',   icon: Users,           label: 'Tenants' },
+  { path: '/payments',  icon: CreditCard,      label: 'Payments' },
+  { path: '/reports',   icon: FileText,        label: 'Reports' },
+  { path: '/reminders', icon: Bell,            label: 'Reminders' },
+  { path: '/settings',  icon: Settings,        label: 'Settings' },
 ];
 
 export default function Sidebar() {
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate('/login');
+  };
+
   return (
-    <aside className="w-64 bg-white dark:bg-primary-light border-r border-gray-200 dark:border-gray-700 h-screen fixed left-0 top-0 transition-colors">
+    <aside className="w-64 bg-white dark:bg-primary-light border-r border-gray-200 dark:border-gray-700 h-screen fixed left-0 top-0 transition-colors flex flex-col">
+      {/* Logo */}
       <div className="p-6">
         <div className="flex items-center gap-3 mb-8">
           <div className="bg-primary dark:bg-gold p-2 rounded-lg">
             <Building2 className="w-6 h-6 text-white dark:text-primary" />
           </div>
           <span className="text-xl font-bold text-primary dark:text-white">
-            PropManager
+            Property Manager
           </span>
         </div>
 
+        {/* Nav links */}
         <nav className="space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
@@ -53,6 +58,17 @@ export default function Sidebar() {
             );
           })}
         </nav>
+      </div>
+
+      {/* Sign Out — pinned to bottom */}
+      <div className="mt-auto p-6 border-t border-gray-200 dark:border-gray-700">
+        <button
+          onClick={handleSignOut}
+          className="flex items-center gap-3 px-4 py-3 w-full rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+        >
+          <LogOut className="w-5 h-5" />
+          <span className="font-medium">Sign Out</span>
+        </button>
       </div>
     </aside>
   );
