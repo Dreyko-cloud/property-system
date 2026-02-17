@@ -1,9 +1,8 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Building2, Users, CreditCard,
-  FileText, Bell, Settings, LogOut,
+  FileText, Bell, Settings,
 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 
 const menuItems = [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -16,13 +15,6 @@ const menuItems = [
 ];
 
 export default function Sidebar() {
-  const navigate = useNavigate();
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate('/login');
-  };
-
   return (
     <aside className="w-64 bg-white dark:bg-primary-light border-r border-gray-200 dark:border-gray-700 h-screen fixed left-0 top-0 transition-colors flex flex-col">
       {/* Logo */}
@@ -58,17 +50,6 @@ export default function Sidebar() {
             );
           })}
         </nav>
-      </div>
-
-      {/* Sign Out — pinned to bottom */}
-      <div className="mt-auto p-6 border-t border-gray-200 dark:border-gray-700">
-        <button
-          onClick={handleSignOut}
-          className="flex items-center gap-3 px-4 py-3 w-full rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-        >
-          <LogOut className="w-5 h-5" />
-          <span className="font-medium">Sign Out</span>
-        </button>
       </div>
     </aside>
   );
